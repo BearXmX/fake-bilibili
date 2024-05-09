@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>小B站</title>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      #app {
+        position: relative;
+        height: 500px;
+        background-color: #000;
+        overflow: hidden;
+      }
+
+      .app-fullscreen {
+        position: fixed !important;
+        height: 100vh !important;
+        width: 100% !important;
+      }
+
+      video {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+
+      .app-fullscreen video {
+        height: 80%;
+      }
+
+      .app-fullscreen .controls {
+        bottom: 20%;
+      }
+
+      .controls {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 10px;
+        color: #fff;
+        z-index: 2;
+        font-size: 10px;
+      }
+
+      .controls button {
+        background-color: transparent;
+        border: none;
+        color: #fff;
+        cursor: pointer;
+        font-size: 16px;
+        outline: none;
+        font-size: 12px;
+        margin-right: 8px;
+      }
+
+      .progress {
+        width: 100%;
+        height: 6px;
+        background-color: #555;
+        position: relative;
+        cursor: pointer;
+      }
+
+      .progress-bar {
+        height: 100%;
+        background-color: #00b96b;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+
+      .progress-indicator {
+        width: 10px;
+        height: 10px;
+        background-color: #00b96b;
+        border-radius: 50%;
+        position: absolute;
+        top: -2px;
+        left: -5px;
+      }
+
+      .controls-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
+
+      .controls-left {
+        display: flex;
+        align-items: center;
+      }
+
+      .controls-right {
+        display: flex;
+        align-items: center;
+      }
+
+      #playPause img,
+      #mute img,
+      #fullscreen-button img {
+        width: 20px;
+        height: 20px;
+      }
+
+      #playPause img:hover,
+      #mute img:hover,
+      #fullscreen-button img:hover {
+        transform: scale(1.1);
+      }
+
+      video::cue {
+        background-color: transparent !important;
+      }
+
+      .utils-container {
+        display: flex;
+        justify-content: space-between;
+        height: 50px;
+        background-color: #e2e2e2c2;
+        box-shadow: 0 6px 16px -8px #00000014, 0 9px 28px #0000000d;
+        padding: 0 8px;
+      }
+
+      .utils-container .barrage-container {
+        display: flex;
+        align-items: center;
+      }
+
+      .utils-container .barrage-container .barrage-input {
+        outline: none;
+        height: 30px;
+        width: 180px;
+        border: 1px solid #00b96b;
+        padding-left: 5px;
+        padding-right: 10px;
+        border-top-left-radius: 6px;
+        border-bottom-left-radius: 6px;
+        border-top-right-radius: 0px;
+        border-bottom-right-radius: 0px;
+      }
+
+      .utils-container .barrage-container .barrage-emit {
+        background-color: #00b96b;
+        color: #fff;
+        height: 30px;
+        padding: 0 8px;
+        text-align: center;
+        line-height: 30px;
+        cursor: pointer;
+        border-top-right-radius: 6px;
+        border-bottom-right-radius: 6px;
+        font-size: 14px;
+      }
+
+      .barrage-box {
+        position: relative;
+        width: 100%;
+        height: 60%;
+        z-index: 4;
+        color: #fff;
+        font-size: 18px;
+        white-space: nowrap;
+      }
+
+      .barrage-item {
+        position: absolute;
+        top: 0;
+        right: -200px;
+        z-index: 5;
+        animation: barrage 5s 0.3s linear;
+        animation-fill-mode: forwards;
+      }
+
+      .barrage-item:hover {
+        animation-play-state: paused !important;
+        z-index: 6;
+      }
+
+      .barrage-item-active {
+        border: 1px solid #00b96b;
+        padding: 2px 8px;
+        z-index: 6;
+        border-radius: 6px;
+      }
+
+      @keyframes barrage {
+        0% {
+          right: -200px;
+        }
+        100% {
+          right: calc(100% + 10px);
+        }
+      }
+
+      .like-container {
+        display: flex;
+        align-items: center;
+      }
+
+      .like-button {
+        background-color: #ffffff;
+        border: 1px solid #dddddd;
+        border-radius: 4px;
+        padding: 6px 8px;
+        cursor: pointer;
+        outline: none;
+        transition: transform 0.2s;
+        border-radius: 6px;
+      }
+
+      .like-button:hover {
+        transform: scale(1.1);
+      }
+
+      .like-animation {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 100px;
+        height: 100px;
+        z-index: 3;
+        transform: translate(-50%, -50%);
+        background-image: url('./like.png'); /* 替换为你的点赞图标 */
+        background-repeat: no-repeat;
+        animation: like1 2s ease-out forwards;
+        opacity: 0;
+      }
+
+      @keyframes like1 {
+        0% {
+          transform: scale(1);
+          opacity: 1;
+          top: 50%;
+          left: 50%;
+        }
+
+        100% {
+          transform: scale(0.3);
+          opacity: 0.5;
+          top: 1%;
+          left: 55%;
+        }
+      }
+
+      @keyframes like2 {
+        0% {
+          transform: scale(1);
+          opacity: 1;
+          top: 50%;
+          left: 40%;
+        }
+
+        100% {
+          transform: scale(0.3);
+          opacity: 0.5;
+          top: 1%;
+          left: 30%;
+        }
+      }
+
+      @keyframes like3 {
+        0% {
+          transform: scale(1);
+          opacity: 1;
+          top: 50%;
+          left: 50%;
+        }
+
+        100% {
+          transform: scale(0.3);
+          opacity: 0.5;
+          top: 1%;
+          left: 60%;
+        }
+      }
+
+      @keyframes like4 {
+        0% {
+          transform: scale(1);
+          opacity: 1;
+          top: 50%;
+          left: 50%;
+        }
+
+        50% {
+          transform: scale(0.6);
+          opacity: 0.5;
+          top: 30%;
+          left: 48%;
+        }
+
+        100% {
+          transform: scale(0.3);
+          opacity: 0.5;
+          top: 1%;
+          left: 50%;
+        }
+      }
+
+      @keyframes like5 {
+        0% {
+          transform: scale(1);
+          opacity: 1;
+          top: 50%;
+          left: 50%;
+        }
+
+        100% {
+          transform: scale(0.3);
+          opacity: 0.5;
+          top: 20%;
+          left: 50%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <video
+        id="videoPlayer"
+        muted
+        autoplay
+        playsinline
+        src="https://outin-655bfbd5bbe211e8852800163e1c60dc.oss-cn-shanghai.aliyuncs.com/customerTrans/ca929e9d57dab18f54ae436a68bbbf7a/56a7b0d0-18e79fbd225-0004-7d2d-591-b7ead.mp4"
+      >
+        <!--         <track src="./en.vtt" kind="subtitles" srclang="en" label="English" default /> -->
+      </video>
+      <div class="controls">
+        <div class="controls-container">
+          <div class="controls-left">
+            <button id="playPause"></button>
+            <div class="time-display" id="currentTimeDisplay">00:00</div>
+            &nbsp;/&nbsp;
+            <div class="time-display" id="durationDisplay">00:00</div>
+          </div>
+          <div class="controls-right">
+            <button id="mute"></button>
+            <button id="fullscreen-button">
+              <img src="./fullscreen.png" alt="" />
+            </button>
+          </div>
+        </div>
+
+        <div class="progress" id="progress">
+          <div class="progress-bar" id="progressBar"></div>
+          <div class="progress-indicator" id="progressIndicator"></div>
+        </div>
+      </div>
+      <div class="barrage-box"></div>
+    </div>
+    <div class="utils-container">
+      <div class="barrage-container">
+        <input type="text" class="barrage-input" />
+        <div class="barrage-emit">发射弹幕</div>
+      </div>
+
+      <div class="like-container">
+        <button class="like-button" id="likeButton">
+          <img src="./zan.png" alt="" title="一键三连" />
+        </button>
+      </div>
+    </div>
+
+    <script>
+      let fullscreenStatus = false
+
+      const App = document.getElementById('app')
+      const video = document.getElementById('videoPlayer')
+      const controls = document.querySelector('.controls')
+      const fullscreenButton = document.getElementById('fullscreen-button')
+      const barrageBox = document.querySelector('.barrage-box')
+      const playPauseButton = document.getElementById('playPause')
+      const muteButton = document.getElementById('mute')
+      const progressBar = document.getElementById('progressBar')
+      const progressIndicator = document.getElementById('progressIndicator')
+      const progress = document.getElementById('progress')
+      const currentTimeDisplay = document.getElementById('currentTimeDisplay')
+      const durationDisplay = document.getElementById('durationDisplay')
+      const barrageInput = document.querySelector('.barrage-input')
+      const barrageEmit = document.querySelector('.barrage-emit')
+      const likeButton = document.getElementById('likeButton')
+      const likeAnimation = document.getElementById('likeAnimation')
+
+      const pausedIcon = './paused.png'
+
+      const playIcon = './play.png'
+
+      const mutedIcon = './muted.png'
+
+      const unmuteIcon = `./unmuted.png`
+
+      const pausedImg = `<img src="${pausedIcon}" alt="">`
+
+      const playImg = `<img src="${playIcon}" alt="">`
+
+      const mutedImg = `<img src="${mutedIcon}" alt="">`
+
+      const unmuteImg = `<img src="${unmuteIcon}" alt="">`
+
+      muteButton.innerHTML = video.muted ? mutedImg : unmuteImg
+
+      playPauseButton.innerHTML = video.paused ? playImg : pausedImg
+
+      function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      }
+
+      if (isMobile()) {
+        controls.style.backgroundColor = '#000'
+      }
+
+      // 格式化时间显示
+
+      // 格式化时间显示
+      function formatTime(time) {
+        const hours = Math.floor(time / 3600)
+        const minutes = Math.floor((time % 3600) / 60)
+        const seconds = Math.floor(time % 60)
+
+        let formattedTime = ''
+        if (hours > 0) {
+          formattedTime += (hours < 10 ? '0' : '') + hours + ':'
+        }
+
+        formattedTime += (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds
+
+        return formattedTime
+      }
+
+      // 监听退出全屏事件
+      document.addEventListener('fullscreenchange', function () {
+        if (!document.fullscreenElement) {
+          // 退出了全屏
+          fullscreenStatus = false
+        }
+      })
+
+      // 监听退出全屏事件（兼容webkit）
+      document.addEventListener('webkitfullscreenchange', function () {
+        if (!document.webkitFullscreenElement) {
+          fullscreenStatus = false
+        }
+      })
+
+      // 确保在用户交互的上下文中调用全屏API
+      fullscreenButton.addEventListener('click', function (e) {
+        e.stopPropagation()
+
+        if (isMobile()) {
+          App.classList.toggle('app-fullscreen')
+
+          return
+        }
+
+        if (fullscreenStatus) {
+          fullscreenStatus = false
+          document.exitFullscreen()
+        } else {
+          if (App.requestFullscreen) {
+            fullscreenStatus = true
+            return App.requestFullscreen()
+          } else if (App.webkitRequestFullScreen) {
+            fullscreenStatus = true
+            return App.webkitRequestFullScreen()
+          } else if (App.mozRequestFullScreen) {
+            fullscreenStatus = true
+            return App.mozRequestFullScreen()
+          } else if (App.msRequestFullscreen) {
+            fullscreenStatus = true
+            return App.msRequestFullscreen()
+          } else {
+            console.log('不支持全屏')
+          }
+        }
+      })
+
+      // 播放/暂停按钮点击事件
+      playPauseButton.addEventListener('click', function () {
+        if (video.paused) {
+          video.play()
+          playPauseButton.innerHTML = pausedImg
+        } else {
+          video.pause()
+          playPauseButton.innerHTML = playImg
+        }
+      })
+
+      // 静音/取消静音按钮点击事件
+      muteButton.addEventListener('click', function () {
+        if (video.muted) {
+          video.muted = false
+          muteButton.innerHTML = unmuteImg
+        } else {
+          video.muted = true
+          muteButton.innerHTML = mutedImg
+        }
+      })
+
+      // 进度条点击事件
+      progress.addEventListener('click', function (e) {
+        var pos = (e.pageX - this.offsetLeft) / this.offsetWidth
+        video.currentTime = pos * video.duration
+      })
+
+      // 更新进度条
+      video.addEventListener('timeupdate', function () {
+        var value = (video.currentTime / video.duration) * 100
+        progressBar.style.width = value + '%'
+        progressIndicator.style.left = `calc(${value}% - 5px)`
+
+        currentTimeDisplay.innerHTML = formatTime(video.currentTime)
+        durationDisplay.innerHTML = formatTime(video.duration)
+
+        if (!video.paused && playPauseButton.innerHTML !== pausedImg) {
+          playPauseButton.innerHTML = pausedImg
+        }
+      })
+
+      video.addEventListener('ended', function () {
+        playPauseButton.innerHTML = playImg
+      })
+
+      class Barrage {
+        instance = null
+        constructor({ text, isActive, clearInput }) {
+          const barrageItem = document.createElement('div')
+
+          const random = Math.floor(Math.random() * 80)
+
+          this.instance = barrageItem
+          this.instance.style.top = `${random}%`
+
+          this.instance.style.color = `rgb(${Math.floor(Math.random() * 256)}, ${Math.floor(Math.random() * 256)}, ${Math.floor(
+            Math.random() * 256
+          )})`
+
+          this.instance.className = 'barrage-item'
+
+          this.instance.style.animationPlayState = 'running'
+
+          if (isActive) {
+            this.instance.classList.add('barrage-item-active')
+          }
+
+          this.instance.innerText = text
+
+          if (clearInput) {
+            barrageInput.value = ''
+          }
+
+          barrageBox.append(barrageItem)
+
+          this.instance.addEventListener('animationend', e => {
+            this.instance.remove()
+            this.instance
+          })
+
+          const instance = this.instance
+
+          document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') {
+              if (instance) {
+                // 阻止渲染进程暂停动画
+                instance.getBoundingClientRect()
+                instance.style.animationPlayState = 'running'
+              }
+            } else {
+              if (instance) {
+                // 阻止渲染进程暂停动画
+                instance.getBoundingClientRect()
+                instance.style.animationPlayState = 'paused'
+              }
+            }
+          })
+        }
+      }
+
+      barrageEmit.addEventListener('click', function () {
+        const barrageText = barrageInput.value.trim()
+
+        if (barrageText) {
+          new Barrage({
+            text: barrageText,
+            isActive: true,
+            clearInput: true,
+          })
+        }
+      })
+
+      let timer = null
+
+      let length = 0
+
+      const initBarrageList = Array(50)
+        .fill(null)
+        .map((item, index) => {
+          return {
+            text: `我是第${index + 1}条弹幕`,
+          }
+        })
+
+      function initBarrageHandler() {
+        timer = setInterval(() => {
+          if (length === initBarrageList.length) {
+            clearInterval(timer)
+            return
+          }
+          new Barrage(initBarrageList[length])
+          length++
+        }, 1000)
+      }
+
+      initBarrageHandler()
+
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') {
+          initBarrageHandler()
+        } else {
+          clearInterval(timer)
+        }
+      })
+
+      likeButton.addEventListener('click', () => {
+        // 创建一个新的点赞动画元素
+
+        for (let i = 0; i < 3; i++) {
+          const likeAnimationItem = document.createElement('div')
+          likeAnimationItem.className = 'like-animation'
+
+          const random = Math.floor(Math.random() * 5) + 1
+
+          likeAnimationItem.style.animation = `like${random} 2s ease-out forwards`
+
+          document.body.appendChild(likeAnimationItem)
+
+          likeAnimationItem.addEventListener('animationend', () => {
+            document.body.removeChild(likeAnimationItem)
+          })
+        }
+      })
+    </script>
+  </body>
+</html>
